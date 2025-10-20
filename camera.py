@@ -1,11 +1,12 @@
 import cv2
 from picamera2 import Picamera2
 from ultralytics import YOLO
+import math
 
-import cam_spec
+import specs
 
-camera = cam_spec.Camera()
-bottle = cam_spec.Bottle()
+camera = specs.Camera()
+bottle = specs.Bottle()
 
 #camera config
 picam2 = Picamera2()
@@ -22,7 +23,6 @@ def disp_fps():
     fps = 1000 / inference_time  #Convert to milliseconds
     text = f'FPS: {fps:.1f}'
 
-    #Define font and position
     font = cv2.FONT_HERSHEY_SIMPLEX
     text_size = cv2.getTextSize(text, font, 1, 2)[0]
     text_x = annotated_frame.shape[1] - text_size[0] - 10  #10 pixels from the right
@@ -30,7 +30,6 @@ def disp_fps():
     font_scale = 1
     thick = 2
 
-    #Draw the text on the annotated frame
     cv2.putText(annotated_frame, text, (text_x, text_y), font, font_scale, (255, 255, 255), thick, cv2.LINE_8)
 
 while True:
@@ -46,7 +45,7 @@ while True:
         obj_conf = float(box.conf[0])
         obj_name = results[0].names[obj_id]
         
-        if obj_name == "bottle" and obj_conf > 0.6:
+        if obj_name == "bottle" and obj_conf > 0.5:
         
             box_coord = box.xyxy[0] #top left and bottom right 
             x1,y1,x2,y2 = map(int, box_coord)
@@ -62,8 +61,17 @@ while True:
             dist_mm = bottle.width_mm / px_width * camera.focal_len_px
             dist_m = dist_mm / 1000
             
-            dist_txt = f"Distance: {dist_m:.1f} m"
+            image_center_px = specs.IMAGE_WIDTH_PX / 2
+            bottle_center_px = (x1 + x2) / 2
+            offset_px = bottle_center_px - image_center_px
+            angle = math.degrees(math.atan(offset_px / camera.focal_len_px))
+            
+            dist_txt = f"Distance: {dist_m:.2f} m"
+            angle_txt = f"Angle: {angle:.2f} deg"
+            
             print(dist_txt)
+            print(angle_txt)
+            
             
     cv2.imshow("Camera", annotated_frame) #display camera feed + bounding box
     
