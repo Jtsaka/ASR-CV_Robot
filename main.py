@@ -12,7 +12,7 @@ while True:
     proc = subprocess.Popen(
         ssh_command,
         shell=True,
-        stdout=subprocess.PIPE,  # only capture stdout from ./asr
+        stdout=subprocess.PIPE,  
         stderr=subprocess.DEVNULL,  # ignore debug/timing stderr (required for 100% accuracy)
         text=True,
         bufsize=1
