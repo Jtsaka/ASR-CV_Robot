@@ -15,6 +15,18 @@ struct Command {
     float distanceMeters; // always in meters
 };
 
+// Execute a shell command and capture its output
+string execCommand(const string &cmd) {
+    array<char, 256> buffer{};
+    string result;
+    FILE *pipe = popen(cmd.c_str(), "r");
+    if (!pipe) return "";
+    while (fgets(buffer.data(), buffer.size(), pipe) != nullptr)
+        result += buffer.data();
+    pclose(pipe);
+    return result;
+}
+
 // Unit conversion
 float toMeters(float value, const string &unit) {
     string u = unit;
@@ -77,8 +89,15 @@ int main() {
     const string modelPath =
         "/home/amartinezhall/whisper-project/whisper.cpp/models/ggml-base.en.bin";
 
-    // Record audio (20 seconds, correct device)
-    string recordCmd = "arecord -D plughw:2,0 -f S16_LE -r 16000 -c 1 -d 20 " + audioFile;
+    // Get card # for sndrpigooglevoi (adafruit mic) dynamically
+    string deviceName = execCommand(
+        "arecord -l | grep -o 'card [0-9]*: sndrpigooglevoi' | head -1 | awk '{print $2}' | tr -d ':'"
+    );
+    deviceName.erase(remove(deviceName.begin(), deviceName.end(), '\n'), deviceName.end());
+    if (deviceName.empty()) deviceName = "0"; // fallback
+
+    // Record audio (15s)
+    string recordCmd = "arecord -D plughw:" + deviceName + ",0 -f S16_LE -r 16000 -c 1 -d 15 " + audioFile;
     if (system(recordCmd.c_str()) != 0) return 1;
 
     // Transcribe audio
@@ -112,5 +131,3 @@ int main() {
 
     return 0;
 }
-
-
